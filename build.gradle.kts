@@ -32,7 +32,12 @@ dependencies {
 
     api("org.apache.logging.log4j:log4j-core:${log4j_version}")
     api("org.apache.logging.log4j:log4j-api:${log4j_version}")
+
+    if (JavaVersion.current().isJava9Compatible) {
+        compileOnly("me.eigenraven.java8unsupported:java-8-unsupported-shim:1.0.0")
+    }
 }
+
 
 java {
     withJavadocJar()
@@ -42,6 +47,6 @@ java {
 }
 
 tasks.withType(JavaCompile::class.java) {
-    options.release = 8
+        options.release = 8
 }
 

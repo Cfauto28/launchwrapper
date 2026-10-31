@@ -1,7 +1,7 @@
 package net.cfauto.launchwrapper.mixin;
 
 import joptsimple.OptionParser;
-import net.cfauto.launchwrapper.Util;
+import net.cfauto.launchwrapper.util.Util;
 import org.spongepowered.asm.mixin.Mixins;
 
 import java.io.File;
