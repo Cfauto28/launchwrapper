@@ -1,3 +1,6 @@
+import jdk.javadoc.internal.tool.resources.javadoc
+import org.gradle.internal.extensions.stdlib.uncheckedCast
+
 plugins {
     id("java-library")
 }
@@ -44,6 +47,17 @@ java {
     withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType(Javadoc::class.java) {
+    options {
+        windowTitle = "LaunchWrapper Docs"
+        (this as? StandardJavadocDocletOptions)!!.tags(
+            "apiNote:a:API Note:",
+            "implSpec:a:Implementation Requirements:",
+            "implNote:a:Implementation Note:"
+        )
+    }
 }
 
 tasks.withType(JavaCompile::class.java) {
