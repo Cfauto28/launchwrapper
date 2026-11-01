@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+@SuppressWarnings("unused")
 public final class AccessClassTransformer implements IClassTransformer {
     private final ThreadLocal<String> className = new ThreadLocal<>();
     private final ThreadLocal<byte[]> basicClass = new ThreadLocal<>();
@@ -30,11 +31,11 @@ public final class AccessClassTransformer implements IClassTransformer {
 
     private void accessTransformer(AccessTransformer at) {
         if (Objects.equals(at.getTarget().className(), className.get())){
-            basicClass.set(runTransformation(className.get(), basicClass.get(), at));
+            basicClass.set(runTransformation(basicClass.get(), at));
         }
     }
 
-    private byte[] runTransformation(String name, byte[] basicClass, AccessTransformer at) {
+    private byte[] runTransformation(byte[] basicClass, AccessTransformer at) {
         ClassReader reader = new ClassReader(basicClass);
         ClassNode classNode = new ClassNode();
         reader.accept(classNode, 0);

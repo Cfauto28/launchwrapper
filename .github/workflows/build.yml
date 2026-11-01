@@ -1,0 +1,14 @@
+on: ["pull_request", "push", "workflow_dispatch"]
+jobs:
+  build:
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v6
+      - name: "Build"
+        run: ./gradlew build --stacktrace
+      - name: "Upload Artifact"
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          path: "build/libs/*"

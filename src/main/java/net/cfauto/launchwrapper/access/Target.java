@@ -23,7 +23,7 @@ public abstract class Target {
      */
     public abstract boolean matches(final String className, final TargetType type, final String targetName);
 
-    public static class ClassTarget extends Target {
+    public final static class ClassTarget extends Target {
         public ClassTarget(String className) { super(className); }
         @Override public String toString() { return className() + " CLASS"; }
         @Override public boolean equals(Object o) {
@@ -42,7 +42,7 @@ public abstract class Target {
         }
     }
 
-    public static class InnerClassTarget extends Target {
+    public final static class InnerClassTarget extends Target {
         private final String innerName;
         public InnerClassTarget(String className, String innerName) {
             super(className);
@@ -70,7 +70,7 @@ public abstract class Target {
         }
     }
 
-    public static class FieldTarget extends Target {
+    public final static class FieldTarget extends Target {
         private final String fieldName;
         public FieldTarget(String className, String fieldName) {
             super(className);
@@ -95,7 +95,7 @@ public abstract class Target {
         }
     }
 
-    public static class MethodTarget extends Target {
+    public final static class MethodTarget extends Target {
         private final String methodName;
         private final String methodDescriptor;
         public MethodTarget(String className, String methodName, String methodDescriptor) {
@@ -126,7 +126,7 @@ public abstract class Target {
         }
     }
 
-    public static class WildcardMethodTarget extends Target {
+    public final static class WildcardMethodTarget extends Target {
         public WildcardMethodTarget(String className) { super(className); }
         @Override public String toString() { return className() + " METHODWILDCARD"; }
         @Override public boolean equals(Object o) {
@@ -145,7 +145,7 @@ public abstract class Target {
         }
     }
 
-    public static class WildcardFieldTarget extends Target {
+    public final static class WildcardFieldTarget extends Target {
         public WildcardFieldTarget(String className) { super(className); }
         @Override public String toString() { return className() + " FIELDWILDCARD"; }
         @Override public boolean equals(Object o) {
