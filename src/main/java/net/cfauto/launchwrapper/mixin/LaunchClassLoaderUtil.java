@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class LaunchClassLoaderUtil implements IClassTracker {
+public final class LaunchClassLoaderUtil implements IClassTracker {
     private static final String CACHED_CLASSES_FIELD = "cachedClasses";
     private static final String CLASS_LOADER_EXCEPTIONS_FIELD = "classLoaderExceptions";
     private static final String TRANSFORMER_EXCEPTIONS_FIELD = "transformerExceptions";

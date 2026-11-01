@@ -1,9 +1,6 @@
 package net.cfauto.launchwrapper.mixin;
 
-import net.cfauto.launchwrapper.IClassTransformer;
 import net.cfauto.launchwrapper.Launch;
-import net.cfauto.launchwrapper.LaunchClassLoader;
-import net.cfauto.launchwrapper.mapping.MappingUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
@@ -21,7 +18,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 
-public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements IClassProvider, IClassBytecodeProvider, ITransformerProvider {
+public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implements IClassProvider, IClassBytecodeProvider, ITransformerProvider {
 
     /**
      * Utility for reflecting into Launch ClassLoader
@@ -165,16 +162,7 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
 
     @Override
     public Collection<ITransformer> getTransformers() {
-        List<IClassTransformer> transformers = Launch.classLoader.getTransformers();
-        List<ITransformer> wrapped = new ArrayList<>(transformers.size());
-        for (IClassTransformer transformer : transformers) {
-            if (transformer instanceof ITransformer) {
-                wrapped.add((ITransformer)transformer);
-            } else {
-                wrapped.add(new LegacyTransformerHandle(transformer));
-            }
-        }
-        return wrapped;
+        return Collections.emptyList();
     }
 
     @Override

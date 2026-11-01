@@ -4,7 +4,7 @@ import net.cfauto.launchwrapper.Launch;
 import org.spongepowered.asm.service.IMixinServiceBootstrap;
 import org.spongepowered.asm.service.ServiceInitialisationException;
 
-public class MixinServiceLaunchWrapperBootstrap implements IMixinServiceBootstrap {
+public final class MixinServiceLaunchWrapperBootstrap implements IMixinServiceBootstrap {
     private static final String SERVICE_PACKAGE = "org.spongepowered.asm.service.";
     private static final String LAUNCH_PACKAGE = "org.spongepowered.asm.launch.";
     private static final String LOGGING_PACKAGE = "org.spongepowered.asm.logging.";

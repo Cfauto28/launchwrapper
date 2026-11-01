@@ -1,5 +1,8 @@
 package net.cfauto.launchwrapper;
 
+import net.fabricmc.mappingio.MappingUtil;
+import org.jspecify.annotations.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +15,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class LaunchClassLoader extends URLClassLoader {
+@SuppressWarnings("unused")
+public final class LaunchClassLoader extends URLClassLoader {
     private final List<String> transformerExceptions = new CopyOnWriteArrayList<>();
     private final List<String> classLoaderExceptions = new CopyOnWriteArrayList<>();
     private final List<IClassTransformer> transformers = new CopyOnWriteArrayList<>();
@@ -23,7 +27,8 @@ public class LaunchClassLoader extends URLClassLoader {
     private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
     public static final int BUFFER_SIZE = 1 << 12;
 
-    private List<URL> sources;
+    //Mixin wants this
+    private final List<URL> sources;
 
     public LaunchClassLoader(URL[] urls) {
         super(urls);
@@ -36,12 +41,14 @@ public class LaunchClassLoader extends URLClassLoader {
                 "javax.swing.",
                 "sun.",
                 "org.apache.logging.",
-                "org.objectweb.asm."));
+                "org.objectweb.asm.",
+                "net.cfauto.launchwrapper."));
         transformerExceptions.addAll(Arrays.asList(
                 "javax.",
                 "argo.",
                 "com.google.common.",
                 "org.bouncycastle."));
+
     }
 
 

@@ -6,10 +6,11 @@ import org.spongepowered.asm.service.IPropertyKey;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GlobalProperty implements IGlobalPropertyService {
+@SuppressWarnings("unchecked")
+public final class GlobalProperty implements IGlobalPropertyService {
     private final Map<String, Object> veryGlobalAndNotAtAllPrivateProperty = new HashMap<>();
 
-    static class Key implements IPropertyKey {
+    static final class Key implements IPropertyKey {
 
         private final String key;
 

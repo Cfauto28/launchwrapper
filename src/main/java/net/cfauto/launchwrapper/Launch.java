@@ -3,7 +3,6 @@ package net.cfauto.launchwrapper;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import net.cfauto.launchwrapper.mapping.MappingUtil;
 import net.cfauto.launchwrapper.util.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +17,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.jar.Manifest;
 
-public class Launch {
+public final class Launch {
     public static LaunchClassLoader classLoader;
     public static Logger LOGGER = LogManager.getLogger("LaunchWrapper");
     public Map<String, ITweaker> tweakers = new HashMap<>();
@@ -36,21 +35,10 @@ public class Launch {
 
         OptionSpec<String> mainTweakClassStringArg = parser.accepts("mainTweakClass").withRequiredArg().ofType(String.class).required();
         OptionSpec<File> tweakDirArg = parser.accepts("tweakDir").withRequiredArg().ofType(File.class).required();
-        OptionSpec<File> mapFileArg = parser.accepts("mapping").withRequiredArg().ofType(File.class);
 
         OptionSet option = parser.parse(args);
         String mainTweakClassString = option.valueOf(mainTweakClassStringArg);
         File tweakDir = option.valueOf(tweakDirArg);
-
-        MappingUtil mappingUtil = null;
-
-        if (option.has(mapFileArg)) {
-            try {
-                mappingUtil = new MappingUtil(option.valueOf(mapFileArg));
-            } catch (IOException e) {
-                LOGGER.atFatal().log("Failed to create mapping util for specified mapping!", e);
-            }
-        }
 
         //Gets all the jars in the tweak dir
         List<Path> filesInTweakDir = new ArrayList<>();
@@ -73,6 +61,10 @@ public class Launch {
 
         //Actually gets the tweakers
         try {
+            //ATs
+            Class<?> accessTweakClass = Class.forName("net.cfauto.launchwrapper.access.AccessTweaker", true, classLoader);
+            ITweaker accessTweak = (ITweaker) accessTweakClass.getConstructor().newInstance();
+            tweakers.put("AccessTweaker", accessTweak);
             if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
                 //Mixin Tweaker
                 Class<?> mixinTweakClass = Class.forName("org.spongepowered.asm.launch.MixinTweakerCFLaunchWrapper", true, classLoader);
@@ -100,21 +92,26 @@ public class Launch {
 
         //Runs the tweakers
         tweakersToDo = tweakers;
+        //ATs
+        ITweaker accessTweak = tweakers.get("AccessTweaker");
+        accessTweak.main(mainTweakClassString, args, tweakers);
+        accessTweak.injectIntoClassLoader(classLoader);
+        tweakersToDo.remove("AccessTweaker");
         if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
             //Mixin
             ITweaker mixinTweaker = tweakers.get("Mixin");
-            mixinTweaker.main(mainTweakClassString, args, tweakers, mappingUtil);
+            mixinTweaker.main(mainTweakClassString, args, tweakers);
             mixinTweaker.injectIntoClassLoader(classLoader);
             tweakersToDo.remove("Mixin");
         }
         //Main tweaker
         IMainTweaker mainTweaker = (IMainTweaker) tweakers.get("MainTweaker_" + mainTweakClassString);
-        mainTweaker.main(mainTweakClassString, args, tweakers, mappingUtil);
+        mainTweaker.main(mainTweakClassString, args, tweakers);
         mainTweaker.injectIntoClassLoader(classLoader);
         tweakersToDo.remove("MainTweaker_" + mainTweakClassString);
         //Other tweakers
         for (ITweaker tweaker : tweakersToDo.values()) {
-            tweaker.main(mainTweakClassString, args, tweakers, mappingUtil);
+            tweaker.main(mainTweakClassString, args, tweakers);
             tweaker.injectIntoClassLoader(classLoader);
             tweakersToDo.remove(tweaker.getClass().getCanonicalName());
         }

@@ -1,8 +1,5 @@
 package net.cfauto.launchwrapper;
 
-import net.cfauto.launchwrapper.mapping.MappingUtil;
-import org.jspecify.annotations.Nullable;
-
 import java.util.Map;
 
 /**
@@ -19,7 +16,6 @@ public interface ITweaker {
      * @param args The launch arguments given to the wrapper
      * @param mainTweakerClass The class name of the current main tweaker
      * @param tweakers The tweakers that are about to / need to be loaded, you can get the main tweaker using {@code tweakers.get("MainTweaker_" + mainTweakClassString)}
-     * @param mappingUtil Instance of {@linkplain MappingUtil} specified by the command line argument --mapping, Is null is --mapping isn't set.
      */
-    void main(String mainTweakerClass, String[] args, Map<String, ITweaker> tweakers, @Nullable MappingUtil mappingUtil);
+    void main(String mainTweakerClass, String[] args, Map<String, ITweaker> tweakers);
 }
