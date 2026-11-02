@@ -66,7 +66,7 @@ public final class AccessClassTransformer implements IClassTransformer {
                 }
             }
             if (privateChangedMethod != null) {
-                replaceSpecialWithVirtual(privateChangedMethod);
+                replaceSpecialWithVirtual(classNode, privateChangedMethod);
             }
         }
         ClassWriter classWriter = new ClassWriter(0);
@@ -104,11 +104,15 @@ public final class AccessClassTransformer implements IClassTransformer {
         Arrays.stream(AccessTransformer.AccessModification.values()).forEach(m->lookup.get()[firstBit(AccessTransformer.AccessModification.toAsm(m))] = m);
     }
 
-    private void replaceSpecialWithVirtual(MethodNode methodNode) {
-        for (AbstractInsnNode insn : methodNode.instructions) {
-            if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {
-                MethodInsnNode mInsn = (MethodInsnNode) insn;
-                mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+    private void replaceSpecialWithVirtual(ClassNode clazz, MethodNode methodNode) {
+        for (MethodNode method : clazz.methods) {
+            for (AbstractInsnNode insnNode : method.instructions) {
+                if (insnNode.getOpcode() == Opcodes.INVOKESPECIAL) {
+                    MethodInsnNode mInsn = (MethodInsnNode) insnNode;
+                    if (methodNode.name.equals(mInsn.name) && methodNode.desc.equals(mInsn.desc)) {
+                        mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+                    }
+                }
             }
         }
     }
