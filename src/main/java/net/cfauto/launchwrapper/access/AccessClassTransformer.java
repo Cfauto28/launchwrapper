@@ -5,14 +5,9 @@ import org.jspecify.annotations.Nullable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.*;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @SuppressWarnings("unused")
 public final class AccessClassTransformer implements IClassTransformer {
@@ -62,8 +57,16 @@ public final class AccessClassTransformer implements IClassTransformer {
                 filed.access = mergeWith(filed.access, at.getAccessMod(), at.getFinalMod());
             }
         } else if (at.getTarget() instanceof Target.WildcardMethodTarget) {
+            MethodNode privateChangedMethod = null;
             for (MethodNode method : classNode.methods) {
+                boolean wasPrivate = (method.access & Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE;
                 method.access = mergeWith(method.access, at.getAccessMod(), at.getFinalMod());
+                if (wasPrivate && !"<init>".equals(method.name) && (method.access & Opcodes.ACC_PRIVATE) != Opcodes.ACC_PRIVATE) {
+                    privateChangedMethod = method;
+                }
+            }
+            if (privateChangedMethod != null) {
+                replaceSpecialWithVirtual(privateChangedMethod);
             }
         }
         ClassWriter classWriter = new ClassWriter(0);
@@ -99,5 +102,14 @@ public final class AccessClassTransformer implements IClassTransformer {
 
     static {
         Arrays.stream(AccessTransformer.AccessModification.values()).forEach(m->lookup.get()[firstBit(AccessTransformer.AccessModification.toAsm(m))] = m);
+    }
+
+    private void replaceSpecialWithVirtual(MethodNode methodNode) {
+        for (AbstractInsnNode insn : methodNode.instructions) {
+            if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {
+                MethodInsnNode mInsn = (MethodInsnNode) insn;
+                mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+            }
+        }
     }
 }
