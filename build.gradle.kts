@@ -41,12 +41,14 @@ dependencies {
     }
 }
 
-
 java {
     withJavadocJar()
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain { languageVersion.set(JavaLanguageVersion.of(8)) }
+
+    sourceSets {
+        main {}
+    }
 }
 
 tasks.withType(Javadoc::class.java) {
@@ -61,6 +63,6 @@ tasks.withType(Javadoc::class.java) {
 }
 
 tasks.withType(JavaCompile::class.java) {
-        options.release = 8
+    options.release = 8
 }
 

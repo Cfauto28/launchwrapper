@@ -1,7 +1,7 @@
 package net.cfauto.launchwrapper.mixin;
 
 import joptsimple.OptionParser;
-import net.cfauto.launchwrapper.util.Util;
+import net.cfauto.launchwrapper.util.Utils;
 import org.spongepowered.asm.mixin.Mixins;
 
 import java.io.File;
@@ -16,7 +16,7 @@ public final class TweakerMixinBootstrap {
     public static void bootstrap(String[] args) throws IOException {
         File tweakDir = (File) new OptionParser().parse(args).valueOf("tweakDir");
         List<Path> tweakJars = new ArrayList<>();
-        Util.recurseDirectory(tweakDir.toPath(), tweakJars);
+        Utils.recurseDirectory(tweakDir.toPath(), tweakJars);
         for (Path jar : tweakJars) {
             Manifest manifest = ((JarURLConnection) jar.toUri().toURL().openConnection()).getManifest();
             if (manifest.getMainAttributes().containsKey("MixinConfig")) {

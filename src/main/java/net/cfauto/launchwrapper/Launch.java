@@ -3,19 +3,18 @@ package net.cfauto.launchwrapper;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import net.cfauto.launchwrapper.util.Util;
+import net.cfauto.launchwrapper.util.Utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.net.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 
 public final class Launch {
     public static LaunchClassLoader classLoader;
@@ -44,11 +43,20 @@ public final class Launch {
         List<Path> filesInTweakDir = new ArrayList<>();
         Set<URL> tweakJars = new HashSet<>();
         try {
-            Util.recurseDirectory(tweakDir.toPath(), filesInTweakDir);
-            for (Path tweakJar : filesInTweakDir) {
-                if (tweakJar.toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
-                    tweakJars.add(tweakJar.toUri().toURL());
-            }
+            Utils.recurseDirectory(tweakDir.toPath(), filesInTweakDir);
+            tweakJars = filesInTweakDir.stream()
+                    .filter(j -> j.toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
+                    .map(Path::toUri)
+                    .map(uri -> {
+                        try {
+                            return uri.toURL();
+                        } catch (MalformedURLException e) {
+                            LOGGER.atFatal().log("Failed to uri to url!", e);
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
         } catch (IOException e) {
             LOGGER.atFatal().log("Failed to recurse tweak dir!", e);
         }
@@ -65,12 +73,6 @@ public final class Launch {
             Class<?> accessTweakClass = Class.forName("net.cfauto.launchwrapper.access.AccessTweaker", true, classLoader);
             ITweaker accessTweak = (ITweaker) accessTweakClass.getConstructor().newInstance();
             tweakers.put("AccessTweaker", accessTweak);
-            if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
-                //Mixin Tweaker
-                Class<?> mixinTweakClass = Class.forName("org.spongepowered.asm.launch.MixinTweakerCFLaunchWrapper", true, classLoader);
-                ITweaker mixinTweaker = (ITweaker) mixinTweakClass.getConstructor().newInstance();
-                tweakers.put("Mixin", mixinTweaker);
-            }
             //Main Tweaker
             Class<?> mainTweakClass = Class.forName(mainTweakClassString, true, classLoader);
             IMainTweaker mainTweaker = (IMainTweaker) mainTweakClass.getConstructor().newInstance();
@@ -83,6 +85,12 @@ public final class Launch {
                 Class<?> tweakClass = Class.forName(tweakClassString, true, classLoader);
                 ITweaker tweaker = (ITweaker) tweakClass.getConstructor().newInstance();
                 tweakers.put(tweakClassString, tweaker);
+            }
+            if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
+                //Mixin Tweaker
+                Class<?> mixinTweakClass = Class.forName("org.spongepowered.asm.launch.MixinTweakerCFLaunchWrapper", true, classLoader);
+                ITweaker mixinTweaker = (ITweaker) mixinTweakClass.getConstructor().newInstance();
+                tweakers.put("Mixin", mixinTweaker);
             }
         } catch (ReflectiveOperationException | IOException e) {
             LOGGER.atFatal().log("Failed to load tweakers class!", e);
@@ -97,13 +105,6 @@ public final class Launch {
         accessTweak.main(mainTweakClassString, args, tweakers);
         accessTweak.injectIntoClassLoader(classLoader);
         tweakersToDo.remove("AccessTweaker");
-        if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
-            //Mixin
-            ITweaker mixinTweaker = tweakers.get("Mixin");
-            mixinTweaker.main(mainTweakClassString, args, tweakers);
-            mixinTweaker.injectIntoClassLoader(classLoader);
-            tweakersToDo.remove("Mixin");
-        }
         //Main tweaker
         IMainTweaker mainTweaker = (IMainTweaker) tweakers.get("MainTweaker_" + mainTweakClassString);
         mainTweaker.main(mainTweakClassString, args, tweakers);
@@ -114,6 +115,13 @@ public final class Launch {
             tweaker.main(mainTweakClassString, args, tweakers);
             tweaker.injectIntoClassLoader(classLoader);
             tweakersToDo.remove(tweaker.getClass().getCanonicalName());
+        }
+        if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
+            //Mixin
+            ITweaker mixinTweaker = tweakers.get("Mixin");
+            mixinTweaker.main(mainTweakClassString, args, tweakers);
+            mixinTweaker.injectIntoClassLoader(classLoader);
+            tweakersToDo.remove("Mixin");
         }
 
         //Launch

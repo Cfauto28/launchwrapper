@@ -4,7 +4,7 @@ import joptsimple.OptionParser;
 import net.cfauto.launchwrapper.ITweaker;
 import net.cfauto.launchwrapper.Launch;
 import net.cfauto.launchwrapper.LaunchClassLoader;
-import net.cfauto.launchwrapper.util.Util;
+import net.cfauto.launchwrapper.util.Utils;
 
 import java.io.*;
 import java.net.JarURLConnection;
@@ -26,7 +26,7 @@ public final class AccessTweaker implements ITweaker {
         try {
             File tweakDir = (File) new OptionParser().parse(args).valueOf("tweakDir");
             List<Path> tweakJars = new ArrayList<>();
-            Util.recurseDirectory(tweakDir.toPath(), tweakJars);
+            Utils.recurseDirectory(tweakDir.toPath(), tweakJars);
             for (Path jar : tweakJars) {
                 Manifest manifest = ((JarURLConnection) jar.toUri().toURL().openConnection()).getManifest();
                 if (manifest.getMainAttributes().containsKey("AccessTransformer")) {

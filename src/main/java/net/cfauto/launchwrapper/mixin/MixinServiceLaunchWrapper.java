@@ -1,6 +1,9 @@
 package net.cfauto.launchwrapper.mixin;
 
+import net.cfauto.launchwrapper.IClassTransformer;
 import net.cfauto.launchwrapper.Launch;
+import net.cfauto.launchwrapper.LaunchClassLoader;
+import net.cfauto.launchwrapper.util.DelegatedTransformer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
@@ -13,25 +16,37 @@ import org.spongepowered.asm.transformers.MixinClassReader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
+@SuppressWarnings("unchecked")
 public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implements IClassProvider, IClassBytecodeProvider, ITransformerProvider {
+    private List<IClassTransformer> transformers;
 
-    /**
-     * Utility for reflecting into Launch ClassLoader
-     */
-    private final LaunchClassLoaderUtil classLoaderUtil;
+    private List<URL> sources;
 
     private List<ILegacyClassTransformer> delegatedTransformers;
 
     private static final Logger logger = LogManager.getLogger();
 
     public MixinServiceLaunchWrapper() {
-        this.classLoaderUtil = new LaunchClassLoaderUtil(Launch.classLoader);
+        try {
+            Field transformersField = LaunchClassLoader.class.getDeclaredField("transformers");
+            transformersField.setAccessible(true);
+            this.transformers = (List<IClassTransformer>) transformersField.get(Launch.classLoader);
+            Field sourcesField = LaunchClassLoader.class.getDeclaredField("sources");
+            sourcesField.setAccessible(true);
+            this.sources = (List<URL>) sourcesField.get(Launch.classLoader);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+           throw new RuntimeException(e);
+        }
     }
+
+
 
 
     @Override
@@ -67,7 +82,7 @@ public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implem
 
     @Override
     public URL[] getClassPath() {
-        return Launch.classLoader.getSources().toArray(new URL[0]);
+        return sources.toArray(new URL[0]);
     }
 
     @Override
@@ -118,7 +133,70 @@ public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implem
 
     @Override
     public IClassTracker getClassTracker() {
-        return this.classLoaderUtil;
+        return new IClassTracker() {
+            private final List<String> classLoaderExceptions;
+            private final Map<String, Class<?>> cachedClasses;
+            private final List<String> transformerExceptions;
+            {
+                try {
+                    Field classLoaderExclusion = LaunchClassLoader.class.getDeclaredField("classLoaderExceptions");
+                    classLoaderExclusion.setAccessible(true);
+                    classLoaderExceptions = (List<String>) classLoaderExclusion.get(Launch.classLoader);
+                    Field cacheClassesField = LaunchClassLoader.class.getDeclaredField("cachedClasses");
+                    cacheClassesField.setAccessible(true);
+                    cachedClasses = (Map<String, Class<?>>) cacheClassesField.get(Launch.classLoader);
+                    Field transformerExceptionsField = LaunchClassLoader.class.getDeclaredField("transformerExceptions");
+                    transformerExceptionsField.setAccessible(true);
+                    transformerExceptions = (List<String>) transformerExceptionsField.get(Launch.classLoader);
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void registerInvalidClass(String className) {
+                if (!classLoaderExceptions.contains(className)) {
+                    Launch.classLoader.addClassLoaderExclusion(className);
+                }
+            }
+
+            @Override
+            public boolean isClassLoaded(String className) {
+                return cachedClasses.containsKey(className);
+            }
+
+            boolean isClassClassLoaderExcluded(String name) {
+                for (final String exception : this.classLoaderExceptions) {
+                    if (name.startsWith(exception)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            boolean isClassTransformerExcluded(String name) {
+                for (final String exception : this.transformerExceptions) {
+                    if (name.startsWith(exception)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            @Override
+            public String getClassRestrictions(String className) {
+                String restrictions = "";
+                if (this.isClassClassLoaderExcluded(className)) {
+                    restrictions = "PACKAGE_CLASSLOADER_EXCLUSION";
+                }
+                if (this.isClassTransformerExcluded(className)) {
+                    restrictions = (restrictions.length() > 0 ? restrictions + "," : "") + "PACKAGE_TRANSFORMER_EXCLUSION";
+                }
+                return restrictions;
+            }
+        };
     }
 
     @Override
@@ -162,7 +240,22 @@ public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implem
 
     @Override
     public Collection<ITransformer> getTransformers() {
-        return Collections.emptyList();
+        return transformers.stream().map(transform -> new ILegacyClassTransformer() {
+            @Override
+            public byte[] transformClassBytes(String name, String transformedName, byte[] basicClass) {
+                return transform.transform(name, basicClass);
+            }
+
+            @Override
+            public String getName() {
+                return transform.getClass().getName();
+            }
+
+            @Override
+            public boolean isDelegationExcluded() {
+                return transform.getClass().getAnnotation(DelegatedTransformer.class) != null;
+            }
+        }).collect(Collectors.toSet());
     }
 
     @Override

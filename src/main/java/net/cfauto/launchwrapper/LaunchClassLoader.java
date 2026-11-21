@@ -41,13 +41,13 @@ public final class LaunchClassLoader extends URLClassLoader {
                 "javax.swing.",
                 "sun.",
                 "org.apache.logging.",
-                "org.objectweb.asm.",
-                "net.cfauto.launchwrapper."));
+                "org.objectweb.asm."));
         transformerExceptions.addAll(Arrays.asList(
                 "javax.",
                 "argo.",
                 "com.google.common.",
-                "org.bouncycastle."));
+                "org.bouncycastle.",
+                "net.cfauto.launchwrapper."));
 
     }
 
@@ -155,12 +155,5 @@ public final class LaunchClassLoader extends URLClassLoader {
         return buf;
     }
 
-    public List<URL> getSources() {
-        return sources;
-    }
-
-    public List<IClassTransformer> getTransformers() {
-        return transformers;
-    }
 }
 
