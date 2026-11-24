@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 public final class Launch {
     public static LaunchClassLoader classLoader;
     public static Logger LOGGER = LogManager.getLogger("LaunchWrapper");
-    public Map<String, ITweaker> tweakers = new HashMap<>();
-    public Map<String, ITweaker> tweakersToDo = new HashMap<>();
+    public Map<String, ITweaker> tweakers = new LinkedHashMap<>();
+    public Map<String, ITweaker> tweakersToDo = new LinkedHashMap<>();
 
     public static void main(String[] args) {
         new Launch().launch(args);
@@ -32,8 +32,8 @@ public final class Launch {
         OptionParser parser = new OptionParser(false);
         parser.allowsUnrecognizedOptions();
 
-        OptionSpec<String> mainTweakClassStringArg = parser.accepts("mainTweakClass").withRequiredArg().ofType(String.class).required();
-        OptionSpec<File> tweakDirArg = parser.accepts("tweakDir").withRequiredArg().ofType(File.class).required();
+        OptionSpec<String> mainTweakClassStringArg = parser.accepts("mainTweakClass", "Main Tweaker Class").withRequiredArg().ofType(String.class).required();
+        OptionSpec<File> tweakDirArg = parser.accepts("tweakDir", "Directory to find the tweakers in").withRequiredArg().ofType(File.class).required();
 
         OptionSet option = parser.parse(args);
         String mainTweakClassString = option.valueOf(mainTweakClassStringArg);
@@ -100,6 +100,7 @@ public final class Launch {
 
         //Runs the tweakers
         tweakersToDo = tweakers;
+        tweakersToDo.remove("Mixin");
         //ATs
         ITweaker accessTweak = tweakers.get("AccessTweaker");
         accessTweak.main(mainTweakClassString, args, tweakers);

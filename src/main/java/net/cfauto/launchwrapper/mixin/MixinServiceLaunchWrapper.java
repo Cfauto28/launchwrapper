@@ -133,70 +133,7 @@ public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implem
 
     @Override
     public IClassTracker getClassTracker() {
-        return new IClassTracker() {
-            private final List<String> classLoaderExceptions;
-            private final Map<String, Class<?>> cachedClasses;
-            private final List<String> transformerExceptions;
-            {
-                try {
-                    Field classLoaderExclusion = LaunchClassLoader.class.getDeclaredField("classLoaderExceptions");
-                    classLoaderExclusion.setAccessible(true);
-                    classLoaderExceptions = (List<String>) classLoaderExclusion.get(Launch.classLoader);
-                    Field cacheClassesField = LaunchClassLoader.class.getDeclaredField("cachedClasses");
-                    cacheClassesField.setAccessible(true);
-                    cachedClasses = (Map<String, Class<?>>) cacheClassesField.get(Launch.classLoader);
-                    Field transformerExceptionsField = LaunchClassLoader.class.getDeclaredField("transformerExceptions");
-                    transformerExceptionsField.setAccessible(true);
-                    transformerExceptions = (List<String>) transformerExceptionsField.get(Launch.classLoader);
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public void registerInvalidClass(String className) {
-                if (!classLoaderExceptions.contains(className)) {
-                    Launch.classLoader.addClassLoaderExclusion(className);
-                }
-            }
-
-            @Override
-            public boolean isClassLoaded(String className) {
-                return cachedClasses.containsKey(className);
-            }
-
-            boolean isClassClassLoaderExcluded(String name) {
-                for (final String exception : this.classLoaderExceptions) {
-                    if (name.startsWith(exception)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            boolean isClassTransformerExcluded(String name) {
-                for (final String exception : this.transformerExceptions) {
-                    if (name.startsWith(exception)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            @Override
-            public String getClassRestrictions(String className) {
-                String restrictions = "";
-                if (this.isClassClassLoaderExcluded(className)) {
-                    restrictions = "PACKAGE_CLASSLOADER_EXCLUSION";
-                }
-                if (this.isClassTransformerExcluded(className)) {
-                    restrictions = (restrictions.length() > 0 ? restrictions + "," : "") + "PACKAGE_TRANSFORMER_EXCLUSION";
-                }
-                return restrictions;
-            }
-        };
+        return new LaunchWrapperClassTracker();
     }
 
     @Override
@@ -307,5 +244,72 @@ public final class MixinServiceLaunchWrapper extends MixinServiceAbstract implem
     @Override
     public void prepare() {
         Launch.classLoader.addClassLoaderExclusion(MixinServiceAbstract.LAUNCH_PACKAGE);
+    }
+
+    private static class LaunchWrapperClassTracker implements IClassTracker {
+        private final List<String> classLoaderExceptions;
+        private final Map<String, Class<?>> cachedClasses;
+        private final List<String> transformerExceptions;
+
+        {
+            //Reflection 
+            try {
+                Field classLoaderExclusion = LaunchClassLoader.class.getDeclaredField("classLoaderExceptions");
+                classLoaderExclusion.setAccessible(true);
+                classLoaderExceptions = (List<String>) classLoaderExclusion.get(Launch.classLoader);
+                Field cacheClassesField = LaunchClassLoader.class.getDeclaredField("cachedClasses");
+                cacheClassesField.setAccessible(true);
+                cachedClasses = (Map<String, Class<?>>) cacheClassesField.get(Launch.classLoader);
+                Field transformerExceptionsField = LaunchClassLoader.class.getDeclaredField("transformerExceptions");
+                transformerExceptionsField.setAccessible(true);
+                transformerExceptions = (List<String>) transformerExceptionsField.get(Launch.classLoader);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void registerInvalidClass(String className) {
+            if (!classLoaderExceptions.contains(className)) {
+                Launch.classLoader.addClassLoaderExclusion(className);
+            }
+        }
+
+        @Override
+        public boolean isClassLoaded(String className) {
+            return cachedClasses.containsKey(className);
+        }
+
+        boolean isClassClassLoaderExcluded(String name) {
+            for (final String exception : this.classLoaderExceptions) {
+                if (name.startsWith(exception)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        boolean isClassTransformerExcluded(String name) {
+            for (final String exception : this.transformerExceptions) {
+                if (name.startsWith(exception)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public String getClassRestrictions(String className) {
+            String restrictions = "";
+            if (this.isClassClassLoaderExcluded(className)) {
+                restrictions = "PACKAGE_CLASSLOADER_EXCLUSION";
+            }
+            if (this.isClassTransformerExcluded(className)) {
+                restrictions = (restrictions.length() > 0 ? restrictions + "," : "") + "PACKAGE_TRANSFORMER_EXCLUSION";
+            }
+            return restrictions;
+        }
     }
 }
