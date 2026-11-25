@@ -3,6 +3,7 @@ package net.cfauto.launchwrapper.access;
 import joptsimple.OptionParser;
 import net.cfauto.launchwrapper.ITweaker;
 import net.cfauto.launchwrapper.Launch;
+import net.cfauto.launchwrapper.LaunchAPI;
 import net.cfauto.launchwrapper.LaunchClassLoader;
 import net.cfauto.launchwrapper.util.Utils;
 
@@ -18,13 +19,13 @@ public final class AccessTweaker implements ITweaker {
 
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
-        classLoader.registerTransformer("net.cfauto.launchwrapper.access.AccessTransformer");
+        classLoader.registerTransformer(new AccessClassTransformer());
     }
 
     @Override
-    public void main(String mainTweakerClass, String[] args, Map<String, ITweaker> tweakers) {
+    public void main() {
         try {
-            File tweakDir = (File) new OptionParser().parse(args).valueOf("tweakDir");
+            File tweakDir = (File) new OptionParser().parse(LaunchAPI.getInstance().getProgramArgs()).valueOf("tweakDir");
             List<Path> tweakJars = new ArrayList<>();
             Utils.recurseDirectory(tweakDir.toPath(), tweakJars);
             for (Path jar : tweakJars) {

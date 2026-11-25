@@ -21,11 +21,11 @@ public final class AccessClassTransformer implements IClassTransformer {
         this.className.set(name);
         this.basicClass.set(basicClass);
         Collection<List<AccessTransformer>> ats = AccessTweaker.getParsedAts().values();
-        ats.forEach(list -> list.forEach(this::accessTransformer));
+        ats.forEach(list -> list.forEach(this::runAccessTransformer));
         return this.basicClass.get();
     }
 
-    private void accessTransformer(AccessTransformer at) {
+    private void runAccessTransformer(AccessTransformer at) {
         if (Objects.equals(at.getTarget().className(), className.get())){
             basicClass.set(runTransformation(basicClass.get(), at));
         }
@@ -46,17 +46,13 @@ public final class AccessClassTransformer implements IClassTransformer {
                     fieldNode.access = mergeWith(fieldNode.access, at.getAccessMod(), at.getFinalMod())
             );
         } else if (at.getTarget() instanceof Target.MethodTarget) {
-            AtomicReference<MethodNode> privateChangedMethod = new AtomicReference<>();
             classNode.methods.stream().filter(m -> m.name.equals(((Target.MethodTarget) at.getTarget()).methodName())).filter(m -> m.desc.equals(((Target.MethodTarget) at.getTarget()).methodDescriptor())).forEach( methodNode -> {
                     boolean wasPrivate = (methodNode.access & Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE;
                     methodNode.access = mergeWith(methodNode.access, at.getAccessMod(), at.getFinalMod());
                     if (wasPrivate && !"<init>".equals(methodNode.name) && (methodNode.access & Opcodes.ACC_PRIVATE) != Opcodes.ACC_PRIVATE) {
-                        privateChangedMethod.set(methodNode);
+                        replaceSpecialWithVirtual(classNode, methodNode);
                     }
             });
-            if (privateChangedMethod.get() != null) {
-                replaceSpecialWithVirtual(classNode, privateChangedMethod.get());
-            }
         } else if (at.getTarget() instanceof Target.InnerClassTarget) {
             classNode.innerClasses.stream().filter(inner -> inner.name.equals(((Target.InnerClassTarget) at.getTarget()).innerName())).forEach(inner ->
                     inner.access = mergeWith(inner.access, at.getAccessMod(), at.getFinalMod())
@@ -67,14 +63,10 @@ public final class AccessClassTransformer implements IClassTransformer {
             }
         } else if (at.getTarget() instanceof Target.WildcardMethodTarget) {
             for (MethodNode method : classNode.methods) {
-                MethodNode privateChangedMethod = null;
                 boolean wasPrivate = (method.access & Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE;
                 method.access = mergeWith(method.access, at.getAccessMod(), at.getFinalMod());
                 if (wasPrivate && !"<init>".equals(method.name) && (method.access & Opcodes.ACC_PRIVATE) != Opcodes.ACC_PRIVATE) {
-                    privateChangedMethod = method;
-                }
-                if (privateChangedMethod != null) {
-                    replaceSpecialWithVirtual(classNode, privateChangedMethod);
+                    replaceSpecialWithVirtual(classNode, method);
                 }
             }
         }

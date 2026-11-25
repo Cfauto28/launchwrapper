@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -54,17 +55,25 @@ public final class LaunchClassLoader extends URLClassLoader {
 
     /**
      * Registers a transformer for transforming
-     * @param transformerClassName The canonical class name "a.b.c.ABC" of the class implementing IClassTransformer
+     * @param transformerClass The class implementing IClassTransformer
      */
-    public void registerTransformer(String transformerClassName) {
+    public <T extends IClassTransformer> void registerTransformer(T transformerClass) {
+        transformers.add(transformerClass);
+    }
+
+    /**
+     * Registers a transformer for transforming
+     * @param clazz The class implementing IClassTransformer
+     */
+    public void registerTransformer(Class<? extends IClassTransformer> clazz) {
         try {
-            Class<?> transformerClass = Class.forName(transformerClassName, true, this);
-            IClassTransformer transformer = (IClassTransformer) transformerClass.getConstructor().newInstance();
-            transformers.add(transformer);
-        } catch (ReflectiveOperationException e) {
-            Launch.LOGGER.atFatal().log("Failed to register transformer {} !", transformerClassName, e);
+            IClassTransformer classTransformer = clazz.getConstructor().newInstance();
+            registerTransformer(classTransformer);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
+
 
     /** Adds a new entry to the end of the class loader exclusions list */
     public void addClassLoaderExclusion(String toExclude) {

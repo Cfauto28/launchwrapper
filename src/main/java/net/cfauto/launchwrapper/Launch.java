@@ -97,32 +97,34 @@ public final class Launch {
         }
 
 
+        new LaunchAPI(mainTweakClassString, args, tweakers);
 
         //Runs the tweakers
         tweakersToDo = tweakers;
-        tweakersToDo.remove("Mixin");
         //ATs
         ITweaker accessTweak = tweakers.get("AccessTweaker");
-        accessTweak.main(mainTweakClassString, args, tweakers);
+        accessTweak.main();
         accessTweak.injectIntoClassLoader(classLoader);
         tweakersToDo.remove("AccessTweaker");
         //Main tweaker
         IMainTweaker mainTweaker = (IMainTweaker) tweakers.get("MainTweaker_" + mainTweakClassString);
-        mainTweaker.main(mainTweakClassString, args, tweakers);
+        mainTweaker.main();
         mainTweaker.injectIntoClassLoader(classLoader);
         tweakersToDo.remove("MainTweaker_" + mainTweakClassString);
+
+        tweakersToDo.remove("Mixin");//Don't run mixin in the other tweakers
+
         //Other tweakers
         for (ITweaker tweaker : tweakersToDo.values()) {
-            tweaker.main(mainTweakClassString, args, tweakers);
+            tweaker.main();
             tweaker.injectIntoClassLoader(classLoader);
             tweakersToDo.remove(tweaker.getClass().getCanonicalName());
         }
         if (Boolean.parseBoolean(System.getProperties().getProperty("launchwrapper.mixin", "true"))) {
             //Mixin
             ITweaker mixinTweaker = tweakers.get("Mixin");
-            mixinTweaker.main(mainTweakClassString, args, tweakers);
+            mixinTweaker.main();
             mixinTweaker.injectIntoClassLoader(classLoader);
-            tweakersToDo.remove("Mixin");
         }
 
         //Launch
